@@ -16,14 +16,11 @@ class UserAdmin(admin.ModelAdmin):
         'pk',
         'username',
         'email',
-        'role',
         'is_superuser',
-        'bio',
         'first_name',
         'last_name',
     )
-    list_editable = ('role',)
-    search_fields = ('username', 'role',)
+    search_fields = ('username',)
     empty_value_display = '-пусто-'
 
 
@@ -60,8 +57,6 @@ class RecipeAdmin(admin.ModelAdmin):
         'name',
         'image',
         'text',
-        'ingredients',
-        'tag'
     )
     list_filter = ('author',)
     empty_value_display = '-пусто-'

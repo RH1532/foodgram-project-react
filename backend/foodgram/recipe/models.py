@@ -81,13 +81,17 @@ class Recipe(models.Model):
     text = models.TextField(verbose_name='Текст')
     ingredients = models.ManyToManyField(
         Ingredient,
-        through='Recipe_ingredient',
+        through='RecipeIngredient',
         through_fields=('recipe', 'ingredient'),
         verbose_name='Ингредиенты'
     )
     tag = models.ManyToManyField(
         Tag,
         verbose_name='Теги'
+    )
+    pub_date = models.DateTimeField(
+        auto_now_add=True,
+        db_index=True
     )
 
     class Meta:
@@ -116,7 +120,10 @@ class RecipeIngredient(models.Model):
         ]
 
     def __str__(self):
-        return self.amount
+        return (f'{self.recipe.name}: '
+                f'{self.ingredient.name} - '
+                f'{self.amount} '
+                f'{self.ingredient.unit}')
 
 
 class List(models.Model):
@@ -125,12 +132,6 @@ class List(models.Model):
 
     class Meta:
         abstract = True
-        constraints = [
-            models.UniqueConstraint(
-                fields=['user', 'recipe'],
-                name='unique_list_item'
-            )
-        ]
 
     def __str__(self):
         return f'{self.user.username} - {self.recipe.name}'
@@ -140,9 +141,21 @@ class FavoritesList(List):
     class Meta(List.Meta):
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранные'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'recipe'],
+                name='unique_favorite_item'
+            )
+        ]
 
 
 class ShoppingList(List):
     class Meta(List.Meta):
         verbose_name = 'Список покупок'
         verbose_name_plural = 'Списки покупок'
+        constraints = [
+            models.UniqueConstraint(
+                fields=['user', 'recipe'],
+                name='unique_shopping_item'
+            )
+        ]

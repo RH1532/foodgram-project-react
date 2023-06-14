@@ -1,6 +1,6 @@
 from django.db import transaction
+from django.core.validators import RegexValidator
 from rest_framework import serializers
-from rest_framework.validators import RegexValidator
 
 from recipe.models import User, Ingredient, Tag, Recipe, RecipeIngredient, FavoritesList, ShoppingList
 
@@ -9,15 +9,15 @@ class UserAdminSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
-            'username', 'email', 'first_name',
-            'last_name', 'bio', 'role'
+            'username',
+            'email',
+            'first_name',
+            'last_name'
         )
 
 
 class UserSerializer(UserAdminSerializer):
-    class Meta(UserAdminSerializer.Meta):
-        read_only_fields = ('role',)
-
+    pass
 
 class GetTokenSerializer(serializers.Serializer):
     username = serializers.CharField(

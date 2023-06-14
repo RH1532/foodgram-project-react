@@ -6,11 +6,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+ADMIN_EMAIL = 'danila.ilyin2000@gmail.ru'
 SHOPPING_LIST_FILENAME = 'shopping_list.pdf'
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv('SECRET_KEY')
+SECRET_KEY = os.getenv('SECRET_KEY', default='django-insecure-++y@5(7q$=@9ma!^c-8@0ep&xg9xj-zj=3w1k+(a@91f(#bqxo')
 
 DEBUG = True
 
@@ -62,8 +63,8 @@ WSGI_APPLICATION = 'foodgram.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': os.getenv('DB_ENGINE', default='django.db.backends.postgresql'),
-        'NAME': os.getenv('DB_NAME', default='postgres'),
+        'ENGINE': os.getenv('DB_ENGINE', default='django.db.backends.sqlite3'),
+        'NAME': os.getenv('DB_NAME', default='db.sqlite3'),
         'USER': os.getenv('POSTGRES_USER', default='postgres'),
         'PASSWORD': os.getenv('POSTGRES_PASSWORD', default='postgres'),
         'HOST': os.getenv('DB_HOST', default='db'),
@@ -105,6 +106,8 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+AUTH_USER_MODEL = 'recipe.User'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

@@ -1,24 +1,33 @@
+from django.db import IntegrityError
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
+from django.core.mail import send_mail
 from django_filters.rest_framework import DjangoFilterBackend
+from django.contrib.auth.tokens import default_token_generator
 from rest_framework import status, viewsets, filters, mixins, generics
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import (AllowAny, IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
 from rest_framework.decorators import action
+from rest_framework_simplejwt.tokens import AccessToken
 
-from foodgram.settings import SHOPPING_LIST_FILENAME
+from foodgram.settings import ADMIN_EMAIL, SHOPPING_LIST_FILENAME
 from recipe.models import Ingredient, Recipe, RecipeIngredient, Tag, User, FavoritesList, ShoppingList
 from .serializers import (
     IngredientSerializer,
     RecipeSerializer,
     RecipeReadSerializer,
     RecipeCreateSerializer,
-    TagSerializer
+    TagSerializer,
+    UserAdminSerializer,
+    UserSerializer,
+    GetTokenSerializer,
+    SignUpSerializer
 )
-from .permissions import IsAdminOrReadOnly
+from .permissions import IsAdminOnly, IsAdminOrReadOnly
 from .filters import RecipeFilter
 
 
@@ -40,7 +49,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     filterset_class = RecipeFilter
     pagination_class = PageNumberPagination()
     pagination_class.page_size_query_param = 'limit'
-    http_method_names = ['get', 'post', 'patch', 'create', 'delete']  # Было добавлено удаление методов 'put' и 'head'
+    http_method_names = ['get', 'post', 'patch', 'create', 'delete']
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
