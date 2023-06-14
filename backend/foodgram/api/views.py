@@ -31,13 +31,23 @@ from .permissions import IsAdminOnly, IsAdminOrReadOnly
 from .filters import RecipeFilter
 
 
-class IngredientViewSet(viewsets.ModelViewSet):
+class IngredientViewSet(
+        mixins.CreateModelMixin,
+        mixins.ListModelMixin,
+        mixins.DestroyModelMixin,
+        viewsets.GenericViewSet
+    ):
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     search_fields = ('^name', )
 
 
-class TagViewSet(viewsets.ModelViewSet):
+class TagViewSet(
+        mixins.CreateModelMixin,
+        mixins.ListModelMixin,
+        mixins.DestroyModelMixin,
+        viewsets.GenericViewSet
+    ):
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
 
