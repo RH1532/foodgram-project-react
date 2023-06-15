@@ -37,4 +37,5 @@ jobs:
           passphrase: ${{ secrets.PASSPHRASE }}
           script: |
             sudo docker-compose stop
+            sudo docker-compose rm backend
             
