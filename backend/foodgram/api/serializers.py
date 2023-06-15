@@ -2,10 +2,18 @@ from django.db import transaction
 from django.core.validators import RegexValidator
 from rest_framework import serializers
 
-from recipe.models import User, Ingredient, Tag, Recipe, RecipeIngredient, FavoritesList, ShoppingList
+from recipe.models import (
+    User,
+    Ingredient,
+    Tag,
+    Recipe,
+    RecipeIngredient,
+    FavoritesList,
+    ShoppingList
+)
 
 
-class UserAdminSerializer(serializers.ModelSerializer):
+class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = (
@@ -16,16 +24,13 @@ class UserAdminSerializer(serializers.ModelSerializer):
         )
 
 
-class UserSerializer(UserAdminSerializer):
-    pass
-
 class GetTokenSerializer(serializers.Serializer):
     username = serializers.CharField(
         required=True,
         max_length=150,
         validators=[
             RegexValidator(
-                regex=r'^[\w.@+-]+\z',
+                regex=r'^[\w.@+-]+$',
                 message='Некорректный формат юзернейма',
             ),
         ],
@@ -42,7 +47,7 @@ class SignUpSerializer(serializers.Serializer):
         max_length=150,
         validators=[
             RegexValidator(
-                regex=r'^[\w.@+-]+\z',
+                regex=r'^[\w.@+-]+$',
                 message='Некорректный формат юзернейма',
             ),
         ],
@@ -110,7 +115,6 @@ class RecipeReadSerializer(serializers.ModelSerializer):
 
 
 class RecipeIngredientCreateSerializer(serializers.ModelSerializer):
-    """Ингредиент и количество для создания рецепта."""
     id = serializers.IntegerField()
 
     class Meta:

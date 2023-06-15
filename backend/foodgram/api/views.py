@@ -22,7 +22,6 @@ from .serializers import (
     RecipeReadSerializer,
     RecipeCreateSerializer,
     TagSerializer,
-    UserAdminSerializer,
     UserSerializer,
     GetTokenSerializer,
     SignUpSerializer
@@ -57,7 +56,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
-    pagination_class = PageNumberPagination()
+    pagination_class = PageNumberPagination
     pagination_class.page_size_query_param = 'limit'
     http_method_names = ['get', 'post', 'patch', 'create', 'delete']
 
@@ -117,7 +116,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
-    serializer_class = UserAdminSerializer
+    serializer_class = UserSerializer
     http_method_names = ['get', 'post', 'patch', 'delete']
     permission_classes = (IsAdminOnly,)
     pagination_class = PageNumberPagination
@@ -143,7 +142,7 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class SignUpView(generics.CreateAPIView):
+class SignUpViewSet(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = SignUpSerializer
     permission_classes = (AllowAny,)
@@ -170,7 +169,7 @@ class SignUpView(generics.CreateAPIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class GetTokenView(generics.CreateAPIView):
+class GetTokenViewSet(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = GetTokenSerializer
     permission_classes = (AllowAny,)

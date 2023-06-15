@@ -10,7 +10,7 @@ class User(AbstractUser):
         unique=True,
         validators=[
             RegexValidator(
-                regex=r'^[\w.@+-]+\z',
+                regex=r'^[\w.@+-]+$',
                 message='Некорректный формат юзернейма',
             ),
         ],
@@ -24,13 +24,6 @@ class User(AbstractUser):
 
     def __str__(self):
         return self.username
-
-    @property
-    def is_admin(self):
-        return (
-            self.role == User.RoleChoices.ADMIN
-            or self.is_staff
-        )
 
 
 class Ingredient(models.Model):
@@ -101,6 +94,7 @@ class Recipe(models.Model):
 
     def __str__(self):
         return self.name
+
 
 class RecipeIngredient(models.Model):
     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
