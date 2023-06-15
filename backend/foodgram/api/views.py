@@ -35,42 +35,20 @@ class UserViewSet(mixins.CreateModelMixin,
     queryset = User.objects.all()
     permission_classes = (AllowAny,)
     serializer_class = UserGetSerializer
-
-    @action(detail=False, methods=['get'])
-    def current(self, request):
-        serializer = self.get_serializer(request.user)
-        return Response(serializer.data)
-
-    @action(detail=True, methods=['get'])
-    def profile(self, request, pk=None):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data)
-
-    def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
-
-    def create(self, request, *args, **kwargs):
-        serializer = UserPostSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=201, headers=headers)
-
-    def perform_create(self, serializer):
-        serializer.save()
+    pagination_class = PageNumberPagination
 
     def get_serializer_class(self):
-        if self.action == 'create':
-            return UserPostSerializer
-        return super().get_serializer_class()
+        if self.action in ('list', 'retrieve'):
+            return UserGetSerializer
+        return UserPostSerializer
+
+    @action(detail=False, methods=['get'],
+            pagination_class=None,
+            permission_classes=(IsAuthenticated,))
+    def me(self, request):
+        serializer = UserGetSerializer(request.user)
+        return Response(serializer.data,
+                        status=status.HTTP_200_OK)
 
 
 class IngredientViewSet(
