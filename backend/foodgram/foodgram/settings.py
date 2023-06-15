@@ -6,8 +6,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-ADMIN_EMAIL = 'danila.ilyin2000@gmail.ru'
 SHOPPING_LIST_FILENAME = 'shopping_list.pdf'
+FORBIDDEN_USERNAMES = ('me',)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -69,8 +69,8 @@ WSGI_APPLICATION = 'foodgram.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': os.getenv('DB_ENGINE', default='django.db.backends.sqlite3'),
-        'NAME': os.getenv('DB_NAME', default='db.sqlite3'),
+        'ENGINE': os.getenv('DB_ENGINE', default='django.db.backends.postgresql'),
+        'NAME': os.getenv('DB_NAME', default='postgres'),
         'USER': os.getenv('POSTGRES_USER', default='postgres'),
         'PASSWORD': os.getenv('POSTGRES_PASSWORD', default='postgres'),
         'HOST': os.getenv('DB_HOST', default='db'),
@@ -107,7 +107,7 @@ USE_L10N = True
 
 USE_TZ = True
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
 
 MEDIA_URL = '/media/'

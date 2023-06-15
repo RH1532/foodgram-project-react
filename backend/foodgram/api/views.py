@@ -1,8 +1,6 @@
-from django.db import IntegrityError
 from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
-from django.core.mail import send_mail
 from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth.tokens import default_token_generator
 from rest_framework import status, viewsets, filters, mixins, generics
@@ -14,7 +12,7 @@ from rest_framework.permissions import (AllowAny, IsAuthenticated,
 from rest_framework.decorators import action
 from rest_framework_simplejwt.tokens import AccessToken
 
-from foodgram.settings import ADMIN_EMAIL, SHOPPING_LIST_FILENAME
+from foodgram.settings import SHOPPING_LIST_FILENAME
 from recipe.models import Ingredient, Recipe, RecipeIngredient, Tag, User, FavoritesList, ShoppingList
 from .serializers import (
     IngredientSerializer,
@@ -23,11 +21,56 @@ from .serializers import (
     RecipeCreateSerializer,
     TagSerializer,
     UserSerializer,
-    GetTokenSerializer,
-    SignUpSerializer
+    UserGetSerializer,
+    UserPostSerializer
 )
 from .permissions import IsAdminOnly, IsAdminOrReadOnly
 from .filters import RecipeFilter
+
+
+class UserViewSet(mixins.CreateModelMixin,
+                  mixins.ListModelMixin,
+                  mixins.RetrieveModelMixin,
+                  viewsets.GenericViewSet):
+    queryset = User.objects.all()
+    permission_classes = (AllowAny,)
+    serializer_class = UserGetSerializer
+
+    @action(detail=False, methods=['get'])
+    def current(self, request):
+        serializer = self.get_serializer(request.user)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['get'])
+    def profile(self, request, pk=None):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    def create(self, request, *args, **kwargs):
+        serializer = UserPostSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=201, headers=headers)
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return UserPostSerializer
+        return super().get_serializer_class()
 
 
 class IngredientViewSet(
@@ -112,78 +155,3 @@ class RecipeViewSet(viewsets.ModelViewSet):
         file = HttpResponse('Cписок покупок:\n' + '\n'.join(file_list), content_type='text/plain')
         file['Content-Disposition'] = f'attachment; filename={SHOPPING_LIST_FILENAME}'
         return file
-
-
-class UserViewSet(viewsets.ModelViewSet):
-    queryset = User.objects.all()
-    serializer_class = UserSerializer
-    http_method_names = ['get', 'post', 'patch', 'delete']
-    permission_classes = (IsAdminOnly,)
-    pagination_class = PageNumberPagination
-    lookup_field = 'username'
-    lookup_value_regex = r'[\w\@\.\+\-]+'
-    filter_backends = (DjangoFilterBackend, filters.SearchFilter)
-    search_fields = ('username',)
-
-    @action(detail=False, methods=['get', 'patch'],
-            permission_classes=[IsAuthenticated],
-            serializer_class=UserSerializer,
-            pagination_class=None)
-    def me(self, request):
-        if request.method == 'GET':
-            return Response(
-                self.get_serializer(request.user).data,
-                status=status.HTTP_200_OK
-            )
-        serializer = self.get_serializer(
-            request.user, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-class SignUpViewSet(generics.CreateAPIView):
-    queryset = User.objects.all()
-    serializer_class = SignUpSerializer
-    permission_classes = (AllowAny,)
-
-    def post(self, request):
-        serializer = SignUpSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        try:
-            user, created = User.objects.get_or_create(
-                **serializer.validated_data
-            )
-        except IntegrityError:
-            raise ValidationError(
-                'username или email уже используются',
-                status.HTTP_400_BAD_REQUEST
-            )
-        confirmation_code = default_token_generator.make_token(user)
-        send_mail(
-            subject='Получение кода подтверждения',
-            message=f'Ваш код подтверждения: {confirmation_code}.',
-            from_email=ADMIN_EMAIL,
-            recipient_list=[user.email],
-        )
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-class GetTokenViewSet(generics.CreateAPIView):
-    queryset = User.objects.all()
-    serializer_class = GetTokenSerializer
-    permission_classes = (AllowAny,)
-
-    def post(self, request):
-        serializer = GetTokenSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        username = serializer.data.get('username')
-        confirmation_code = serializer.data.get('confirmation_code')
-        user = get_object_or_404(User, username=username)
-        if default_token_generator.check_token(user, confirmation_code):
-            token = AccessToken.for_user(user)
-            return Response({'token': f'{token}'}, status.HTTP_200_OK)
-        return Response(
-            {'message': 'Неверный код подтверждения.'},
-            status.HTTP_400_BAD_REQUEST
-        )

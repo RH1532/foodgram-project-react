@@ -1,7 +1,9 @@
 from django.db import transaction
 from django.core.validators import RegexValidator
+from djoser.serializers import UserSerializer, UserCreateSerializer
 from rest_framework import serializers
 
+from recipe.validators import validate_username
 from recipe.models import (
     User,
     Ingredient,
@@ -13,46 +15,30 @@ from recipe.models import (
 )
 
 
-class UserSerializer(serializers.ModelSerializer):
+class UserGetSerializer(UserSerializer):
     class Meta:
         model = User
         fields = (
-            'username',
             'email',
+            'username',
             'first_name',
             'last_name'
         )
 
 
-class GetTokenSerializer(serializers.Serializer):
-    username = serializers.CharField(
-        required=True,
-        max_length=150,
-        validators=[
-            RegexValidator(
-                regex=r'^[\w.@+-]+$',
-                message='Некорректный формат юзернейма',
-            ),
-        ],
-    )
-    confirmation_code = serializers.CharField(
-        required=True,
-        max_length=50
-    )
+class UserPostSerializer(UserCreateSerializer):
+    class Meta:
+        model = User
+        fields = (
+            'email',
+            'username',
+            'first_name',
+            'last_name',
+            'password'
+        )
 
-
-class SignUpSerializer(serializers.Serializer):
-    username = serializers.CharField(
-        required=True,
-        max_length=150,
-        validators=[
-            RegexValidator(
-                regex=r'^[\w.@+-]+$',
-                message='Некорректный формат юзернейма',
-            ),
-        ],
-    )
-    email = serializers.EmailField(required=True, max_length=254)
+    def validate_username(self, username):
+        return validate_username(username)
 
 
 class IngredientSerializer(serializers.ModelSerializer):

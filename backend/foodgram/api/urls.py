@@ -16,5 +16,5 @@ router_ver1.register(r'users', UserViewSet, basename='users')
 
 urlpatterns = [
     path('', include(router_ver1.urls)),
-    path(r'auth/', include('djoser.urls.authtoken')),
+    path('auth/', include('djoser.urls')),
 ]
