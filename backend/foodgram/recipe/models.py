@@ -23,6 +23,23 @@ class User(AbstractUser):
         return self.username
 
 
+class Subscribe(models.Model):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='subscriber')
+    author = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='subscriptions')
+
+    def __str__(self):
+        return f'{self.user.username} - {self.author.username}'
+
+    constraints = [
+        models.UniqueConstraint(
+            fields=['user', 'author'],
+            name='unique_subscription'
+        )
+    ]
+
+
 class Ingredient(models.Model):
     name = models.CharField(max_length=255)
     unit = models.CharField(max_length=50)
@@ -150,3 +167,17 @@ class ShoppingList(List):
                 name='unique_shopping_item'
             )
         ]
+
+
+class Follow(models.Model):
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='following')
+    following = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='followers')
+
+    constraints = [
+        models.UniqueConstraint(
+            fields=['user', 'following'],
+            name='unique_follower'
+        )
+    ]

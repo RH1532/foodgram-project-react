@@ -1,11 +1,12 @@
 from django.db import transaction
-from django.core.validators import RegexValidator
 from djoser.serializers import UserSerializer, UserCreateSerializer
 from rest_framework import serializers
+from rest_framework.validators import UniqueTogetherValidator
 
 from recipe.validators import validate_username
 from recipe.models import (
     User,
+    Subscribe,
     Ingredient,
     Tag,
     Recipe,
@@ -39,6 +40,35 @@ class UserPostSerializer(UserCreateSerializer):
 
     def validate_username(self, username):
         return validate_username(username)
+
+
+class SubscribeSerializer(serializers.ModelSerializer):
+    user = serializers.SlugRelatedField(
+        read_only=True,
+        slug_field='username',
+        default=serializers.CurrentUserDefault(),
+    )
+    author = serializers.SlugRelatedField(
+        slug_field='username',
+        queryset=User.objects.all(),
+    )
+
+    class Meta:
+        fields = '__all__'
+        model = Subscribe
+        validators = [
+            UniqueTogetherValidator(
+                queryset=Subscribe.objects.all(),
+                fields=('user', 'author')
+            )
+        ]
+
+    def validate_subscription(self, value):
+        if self.context['request'].user == value:
+            raise serializers.ValidationError(
+                'Подписка на самого себя невозможна'
+            )
+        return value
 
 
 class IngredientSerializer(serializers.ModelSerializer):

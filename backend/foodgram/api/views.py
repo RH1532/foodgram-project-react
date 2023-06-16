@@ -1,4 +1,4 @@
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -13,16 +13,25 @@ from rest_framework.decorators import action
 from rest_framework_simplejwt.tokens import AccessToken
 
 from foodgram.settings import SHOPPING_LIST_FILENAME
-from recipe.models import Ingredient, Recipe, RecipeIngredient, Tag, User, FavoritesList, ShoppingList
+from recipe.models import (
+    Ingredient,
+    Recipe,
+    RecipeIngredient,
+    Tag,
+    User,
+    Subscribe,
+    FavoritesList,
+    ShoppingList
+)
 from .serializers import (
+    UserGetSerializer,
+    UserPostSerializer,
+    SubscribeSerializer,
     IngredientSerializer,
     RecipeSerializer,
     RecipeReadSerializer,
     RecipeCreateSerializer,
     TagSerializer,
-    UserSerializer,
-    UserGetSerializer,
-    UserPostSerializer
 )
 from .permissions import IsAdminOnly, IsAdminOrReadOnly
 from .filters import RecipeFilter
@@ -36,7 +45,7 @@ class UserViewSet(mixins.CreateModelMixin,
     permission_classes = (AllowAny,)
     serializer_class = UserGetSerializer
     pagination_class = PageNumberPagination
-
+    
     def get_serializer_class(self):
         if self.action == 'create':
             return UserPostSerializer
@@ -72,6 +81,37 @@ class UserViewSet(mixins.CreateModelMixin,
 
     def perform_create(self, serializer):
         serializer.save()
+
+    @action(detail=False, methods=['get'],
+            permission_classes=(IsAuthenticated,))
+    def subscriptions(self, request):
+        queryset = Subscribe.objects.filter(user=request.user)
+        serializer = SubscribeSerializer(
+            queryset,
+            many=True,
+            context={'request': request}
+        )
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'],
+            permission_classes=(IsAuthenticated,))
+    def subscribe(self, request, **kwargs):
+        author = get_object_or_404(User, id=kwargs['pk'])
+        serializer = SubscribeSerializer(
+            data={'user': request.user.id, 'author': author.id},
+            context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=['delete'],
+            permission_classes=(IsAuthenticated,))
+    def unsubscribe(self, request, **kwargs):
+        author = get_object_or_404(User, id=kwargs['pk'])
+        subscription = get_object_or_404(Subscribe, Q(user=request.user) & Q(author=author))
+        subscription.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
 class IngredientViewSet(
