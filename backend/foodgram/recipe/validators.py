@@ -1,7 +1,6 @@
 import re
 
 from django.core.exceptions import ValidationError
-from django.utils import timezone
 
 from foodgram.settings import FORBIDDEN_USERNAMES
 

@@ -1,12 +1,12 @@
 from django.contrib import admin
 from .models import (
     User,
-    #Ingredient,
-    #Tag,
-    #Recipe,
-    #RecipeIngredient,
-    #FavoritesList,
-    #ShoppingList
+    Ingredient,
+    Tag,
+    Recipe,
+    RecipeIngredient,
+    FavoritesList,
+    ShoppingList
 )
 
 
@@ -23,7 +23,7 @@ class UserAdmin(admin.ModelAdmin):
     search_fields = ('username',)
     empty_value_display = '-пусто-'
 
-'''
+
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
     list_display = (
@@ -93,4 +93,3 @@ class ShoppingListAdmin(admin.ModelAdmin):
     )
     list_filter = ('user',)
     empty_value_display = '-пусто-'
-'''

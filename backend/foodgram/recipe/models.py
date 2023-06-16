@@ -96,6 +96,9 @@ class Recipe(models.Model):
         Tag,
         verbose_name='Теги'
     )
+    cooking_time = models.IntegerField(
+        validators=[MinValueValidator(1)]
+    )
     pub_date = models.DateTimeField(
         auto_now_add=True,
         db_index=True
