@@ -3,33 +3,33 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets, mixins
-from rest_framework.response import Response
+from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.decorators import action
+from rest_framework.response import Response
 
 from foodgram.settings import SHOPPING_LIST_FILENAME
+from .filters import RecipeFilter
 from recipe.models import (
+    FavoritesList,
     Ingredient,
     Recipe,
     RecipeIngredient,
+    ShoppingList,
+    Subscribe,
     Tag,
     User,
-    Subscribe,
-    FavoritesList,
-    ShoppingList
-)
-from .serializers import (
-    UserGetSerializer,
-    UserPostSerializer,
-    SubscribeSerializer,
-    IngredientSerializer,
-    RecipeReadSerializer,
-    RecipeCreateSerializer,
-    TagSerializer,
 )
 from .permissions import IsAdminOrReadOnly
-from .filters import RecipeFilter
+from .serializers import (
+    IngredientSerializer,
+    RecipeCreateSerializer,
+    RecipeReadSerializer,
+    SubscribeSerializer,
+    TagSerializer,
+    UserGetSerializer,
+    UserPostSerializer,
+)
 
 
 class UserViewSet(mixins.CreateModelMixin,
@@ -66,16 +66,6 @@ class UserViewSet(mixins.CreateModelMixin,
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-
-    def create(self, request, *args, **kwargs):
-        serializer = UserPostSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=201, headers=headers)
-
-    def perform_create(self, serializer):
-        serializer.save()
 
     @action(detail=False, methods=['get'],
             permission_classes=(IsAuthenticated,))
@@ -135,44 +125,49 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return RecipeReadSerializer
         return RecipeCreateSerializer
 
-    @action(detail=True, methods=['post', 'delete'],
-            permission_classes=(IsAuthenticated,))
-    def favorite(self, request, **kwargs):
+    def add_or_remove_item(request,
+                           model_class,
+                           error_message,
+                           success_status,
+                           **kwargs):
         recipe = get_object_or_404(Recipe, id=kwargs['pk'])
 
         if request.method == 'POST':
-            if not FavoritesList.objects.filter(user=request.user,
-                                                recipe=recipe).exists():
-                FavoritesList.objects.create(user=request.user, recipe=recipe)
-                return Response(status=status.HTTP_201_CREATED)
-            return Response({'errors': 'Рецепт уже в избранном.'},
+            if not model_class.objects.filter(user=request.user,
+                                              recipe=recipe).exists():
+                model_class.objects.create(user=request.user, recipe=recipe)
+                return Response(status=success_status)
+            return Response({'errors': error_message},
                             status=status.HTTP_400_BAD_REQUEST)
 
         if request.method == 'DELETE':
-            get_object_or_404(FavoritesList,
+            get_object_or_404(model_class,
                               user=request.user,
                               recipe=recipe).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=True, methods=['post', 'delete'],
+            permission_classes=(IsAuthenticated,))
+    def favorite(self, request, **kwargs):
+        return self.add_or_remove_item(
+            request,
+            FavoritesList,
+            'Рецепт уже в избранном.',
+            status.HTTP_201_CREATED,
+            **kwargs
+        )
 
     @action(detail=True, methods=['post', 'delete'],
             permission_classes=(IsAuthenticated,),
             pagination_class=None)
     def shopping_cart(self, request, **kwargs):
-        recipe = get_object_or_404(Recipe, id=kwargs['pk'])
-
-        if request.method == 'POST':
-            if not ShoppingList.objects.filter(user=request.user,
-                                               recipe=recipe).exists():
-                ShoppingList.objects.create(user=request.user, recipe=recipe)
-                return Response(status=status.HTTP_201_CREATED)
-            return Response({'errors': 'Рецепт уже в списке покупок.'},
-                            status=status.HTTP_400_BAD_REQUEST)
-
-        if request.method == 'DELETE':
-            get_object_or_404(ShoppingList,
-                              user=request.user,
-                              recipe=recipe).delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        return self.add_or_remove_item(
+            request,
+            ShoppingList,
+            'Рецепт уже в списке покупок.',
+            status.HTTP_201_CREATED,
+            **kwargs
+        )
 
     @action(detail=False, methods=['get'],
             permission_classes=(IsAuthenticated,))

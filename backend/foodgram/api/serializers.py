@@ -5,12 +5,12 @@ from rest_framework.validators import UniqueTogetherValidator
 
 from recipe.validators import validate_username
 from recipe.models import (
-    User,
-    Subscribe,
     Ingredient,
-    Tag,
     Recipe,
     RecipeIngredient,
+    Subscribe,
+    Tag,
+    User,
 )
 
 
@@ -201,17 +201,26 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
                                                    instance.cooking_time)
         tags = validated_data.pop('tags')
         ingredients = validated_data.pop('ingredients')
+
+        super().update(instance, validated_data)
+
         instance.tags.set(tags)
+
+        self.update_recipe_ingredients(instance, ingredients)
+
+        return instance
+
+    def update_recipe_ingredients(self, instance, ingredients):
         RecipeIngredient.objects.filter(recipe=instance).delete()
-        RecipeIngredient.objects.bulk_create(
-            [RecipeIngredient(
+        recipe_ingredients = [
+            RecipeIngredient(
                 recipe=instance,
                 ingredient_id=ingredient['id'],
                 amount=ingredient['amount']
-            ) for ingredient in ingredients]
-        )
-        instance.save()
-        return instance
+            )
+            for ingredient in ingredients
+        ]
+        RecipeIngredient.objects.bulk_create(recipe_ingredients)
 
     def to_representation(self, instance):
         return RecipeReadSerializer(instance, context=self.context).data
