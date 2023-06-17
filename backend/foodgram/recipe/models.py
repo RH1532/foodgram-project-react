@@ -150,15 +150,18 @@ class RecipeIngredient(models.Model):
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
+        related_name='recipes',
         verbose_name='Рецепт',
     )
     ingredient = models.ForeignKey(
         Ingredient,
         on_delete=models.CASCADE,
+        related_name='ingredients',
         verbose_name='Ингредиент',
     )
     amount = models.IntegerField(
-        validators=[MinValueValidator(1)]
+        validators=[MinValueValidator(1)],
+        verbose_name='Количество'
     )
 
     class Meta:
@@ -178,27 +181,21 @@ class RecipeIngredient(models.Model):
                 f'{self.ingredient.unit}')
 
 
-class List(models.Model):
+class FavoritesList(models.Model):
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
+        related_name='favorite_user',
         verbose_name='Пользователь'
     )
     recipe = models.ForeignKey(
         Recipe,
         on_delete=models.CASCADE,
-        verbose_name='Рецепт'
+        related_name='favorite_recipe',
+        verbose_name='Рецепт в избранном'
     )
 
     class Meta:
-        abstract = True
-
-    def __str__(self):
-        return f'{self.user.username} - {self.recipe.name}'
-
-
-class FavoritesList(List):
-    class Meta(List.Meta):
         verbose_name = 'Избранное'
         verbose_name_plural = 'Избранные'
         constraints = [
@@ -208,9 +205,25 @@ class FavoritesList(List):
             )
         ]
 
+    def __str__(self):
+        return f'{self.user.username} - {self.recipe.name}'
 
-class ShoppingList(List):
-    class Meta(List.Meta):
+
+class ShoppingList(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='shopping_user',
+        verbose_name='Пользователь'
+    )
+    recipe = models.ForeignKey(
+        Recipe,
+        on_delete=models.CASCADE,
+        related_name='shopping_recipe',
+        verbose_name='Рецепт в корзине'
+    )
+
+    class Meta:
         verbose_name = 'Список покупок'
         verbose_name_plural = 'Списки покупок'
         constraints = [
@@ -219,3 +232,6 @@ class ShoppingList(List):
                 name='unique_shopping_item'
             )
         ]
+
+    def __str__(self):
+        return f'{self.user.username} - {self.recipe.name}'

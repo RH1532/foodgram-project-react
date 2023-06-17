@@ -183,22 +183,11 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         recipe = Recipe.objects.create(author=self.context['request'].user,
                                        **validated_data)
         recipe.tags.set(tags)
-        RecipeIngredient.objects.bulk_create(
-            [RecipeIngredient(
-                recipe=recipe,
-                ingredient_id=ingredient['id'],
-                amount=ingredient['amount']
-            ) for ingredient in ingredients]
-        )
+        self.create_recipe_ingredients(recipe, ingredients)
         return recipe
 
     @transaction.atomic
     def update(self, instance, validated_data):
-        instance.image = validated_data.get('image', instance.image)
-        instance.name = validated_data.get('name', instance.name)
-        instance.text = validated_data.get('text', instance.text)
-        instance.cooking_time = validated_data.get('cooking_time',
-                                                   instance.cooking_time)
         tags = validated_data.pop('tags')
         ingredients = validated_data.pop('ingredients')
 
@@ -206,11 +195,11 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
 
         instance.tags.set(tags)
 
-        self.update_recipe_ingredients(instance, ingredients)
+        self.create_recipe_ingredients(instance, ingredients)
 
         return instance
 
-    def update_recipe_ingredients(self, instance, ingredients):
+    def create_recipe_ingredients(self, instance, ingredients):
         RecipeIngredient.objects.filter(recipe=instance).delete()
         recipe_ingredients = [
             RecipeIngredient(
