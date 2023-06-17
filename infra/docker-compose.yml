@@ -11,9 +11,9 @@ services:
 
   backend:
       image: danila1532/infra-backend
-      build:
-        context: ../backend
-        dockerfile: Dockerfile
+      #build:
+      #  context: ../backend
+      #  dockerfile: Dockerfile
       restart: always
       volumes:
         - static_value:/app/static/
@@ -25,11 +25,13 @@ services:
 
   frontend:
     image: danila1532/infra-frontend
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile
+    #build:
+    #  context: ../frontend
+    #  dockerfile: Dockerfile
     volumes:
       - ../frontend/:/app/result_build/
+    depends_on:
+      - backend
 
   nginx:
     image: nginx:1.21.3-alpine
