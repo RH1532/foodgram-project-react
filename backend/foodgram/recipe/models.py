@@ -2,8 +2,6 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 
-from .validators import validate_username
-
 
 class User(AbstractUser):
     email = models.EmailField(
@@ -11,18 +9,10 @@ class User(AbstractUser):
         unique=True,
         verbose_name='Адрес электронной почты'
     )
-    username = models.CharField(
-        max_length=150,
-        unique=True,
-        validators=(validate_username,),
-        verbose_name='Имя пользователя'
-    )
-    first_name = models.CharField(max_length=150, verbose_name='Имя')
-    last_name = models.CharField(max_length=150, verbose_name='Фамилия')
     password = models.CharField(max_length=150, verbose_name='Пароль')
 
     class Meta:
-        ordering = ('username',)
+        ordering = ('id',)
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
 

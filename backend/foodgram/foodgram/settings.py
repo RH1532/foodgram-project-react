@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-SHOPPING_LIST_FILENAME = 'shopping_list.pdf'
+SHOPPING_LIST_FILENAME = 'shopping_list.txt'
 FORBIDDEN_USERNAMES = ('me',)
 
 BASE_DIR = Path(__file__).resolve().parent.parent

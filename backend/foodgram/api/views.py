@@ -25,10 +25,12 @@ from .serializers import (
     IngredientSerializer,
     RecipeCreateSerializer,
     RecipeReadSerializer,
-    SubscribeSerializer,
+    SubscribeGetSerializer,
+    SubscribePostSerializer,
     TagSerializer,
     UserGetSerializer,
     UserPostSerializer,
+    PasswordSerializer,
 )
 
 
@@ -69,38 +71,43 @@ class UserViewSet(mixins.CreateModelMixin,
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-    @action(detail=False, methods=['get'],
+    @action(detail=False, methods=['post'],
             permission_classes=(IsAuthenticated,))
-    def subscriptions(self, request):
-        queryset = Subscribe.objects.filter(user=request.user)
-        serializer = SubscribeSerializer(
-            queryset,
-            many=True,
-            context={'request': request}
-        )
-        return Response(serializer.data)
+    def set_password(self, request):
+        serializer = PasswordSerializer(request.user, data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            serializer.save()
+        return Response({'detail': 'Пароль успешно изменен!'},
+                        status=status.HTTP_204_NO_CONTENT)
 
-    @action(detail=True, methods=['post'],
+    @action(detail=False, methods=['get'],
+            permission_classes=(IsAuthenticated,),
+            pagination_class=PageNumberPagination)
+    def subscriptions(self, request):
+        queryset = User.objects.filter(subscriber__user=request.user)
+        page = self.paginate_queryset(queryset)
+        serializer = SubscribeGetSerializer(page, many=True,
+                                             context={'request': request})
+        return self.get_paginated_response(serializer.data)
+
+    @action(detail=True, methods=['post', 'delete'],
             permission_classes=(IsAuthenticated,))
     def subscribe(self, request, **kwargs):
         author = get_object_or_404(User, id=kwargs['pk'])
-        serializer = SubscribeSerializer(
-            data={'user': request.user.id, 'author': author.id},
-            context={"request": request}
-        )
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    @action(detail=True, methods=['delete'],
-            permission_classes=(IsAuthenticated,))
-    def unsubscribe(self, request, **kwargs):
-        author = get_object_or_404(User, id=kwargs['pk'])
-        subscription = get_object_or_404(Subscribe,
-                                         Q(user=request.user)
-                                         & Q(author=author))
-        subscription.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        if request.method == 'POST':
+            serializer = SubscribePostSerializer(
+                author, data=request.data, context={"request": request})
+            serializer.is_valid(raise_exception=True)
+            Subscribe.objects.create(user=request.user, author=author)
+            return Response(serializer.data,
+                            status=status.HTTP_201_CREATED)
+
+        if request.method == 'DELETE':
+            get_object_or_404(Subscribe, user=request.user,
+                              author=author).delete()
+            return Response({'detail': 'Успешная отписка'},
+                            status=status.HTTP_204_NO_CONTENT)
 
 
 class IngredientViewSet(mixins.ListModelMixin,
@@ -135,32 +142,23 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return RecipeReadSerializer
         return RecipeCreateSerializer
 
-    def add_or_remove_item(request,
-                           model_class,
-                           error_message,
-                           success_status,
-                           **kwargs):
+    def add_or_remove_item(self, model_class, error_message, success_status, **kwargs):
         recipe = get_object_or_404(Recipe, id=kwargs['pk'])
 
-        if request.method == 'POST':
-            if not model_class.objects.filter(user=request.user,
-                                              recipe=recipe).exists():
-                model_class.objects.create(user=request.user, recipe=recipe)
+        if self.request.method == 'POST':
+            if not model_class.objects.filter(user=self.request.user, recipe=recipe).exists():
+                model_class.objects.create(user=self.request.user, recipe=recipe)
                 return Response(status=success_status)
-            return Response({'errors': error_message},
-                            status=status.HTTP_400_BAD_REQUEST)
+            return Response({'errors': error_message}, status=status.HTTP_400_BAD_REQUEST)
 
-        if request.method == 'DELETE':
-            get_object_or_404(model_class,
-                              user=request.user,
-                              recipe=recipe).delete()
+        if self.request.method == 'DELETE':
+            get_object_or_404(model_class, user=self.request.user, recipe=recipe).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=['post', 'delete'],
             permission_classes=(IsAuthenticated,))
     def favorite(self, request, **kwargs):
         return self.add_or_remove_item(
-            request,
             FavoritesList,
             'Рецепт уже в избранном.',
             status.HTTP_201_CREATED,
@@ -172,7 +170,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
             pagination_class=None)
     def shopping_cart(self, request, **kwargs):
         return self.add_or_remove_item(
-            request,
             ShoppingList,
             'Рецепт уже в списке покупок.',
             status.HTTP_201_CREATED,
@@ -190,7 +187,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             .values_list(
                 'ingredient__name',
                 'total_amount',
-                'ingredient__measurement_unit'
+                'ingredient__unit'
             )
         )
         file_list = ['{} - {} {}.'.format(*ingredient)

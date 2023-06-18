@@ -1,5 +1,7 @@
 from django.db import transaction
 from djoser.serializers import UserSerializer, UserCreateSerializer
+from django.core import exceptions as django_exceptions
+from django.contrib.auth.password_validation import validate_password
 from drf_base64.fields import Base64ImageField
 from rest_framework import serializers
 from rest_framework.validators import UniqueTogetherValidator
@@ -48,33 +50,106 @@ class UserPostSerializer(UserCreateSerializer):
         return validate_username(username)
 
 
-class SubscribeSerializer(serializers.ModelSerializer):
-    user = serializers.SlugRelatedField(
-        read_only=True,
-        slug_field='username',
-        default=serializers.CurrentUserDefault(),
-    )
-    author = serializers.SlugRelatedField(
-        slug_field='username',
-        queryset=User.objects.all(),
-    )
+class RecipeSerializer(serializers.ModelSerializer):
+    image = Base64ImageField(read_only=True)
+    name = serializers.ReadOnlyField()
+    cooking_time = serializers.ReadOnlyField()
 
     class Meta:
-        fields = '__all__'
-        model = Subscribe
-        validators = [
-            UniqueTogetherValidator(
-                queryset=Subscribe.objects.all(),
-                fields=('user', 'author')
-            )
-        ]
+        model = Recipe
+        fields = ('id', 'name',
+                  'image', 'cooking_time')
+
+
+class SubscribeGetSerializer(serializers.ModelSerializer):
+    is_subscribed = serializers.SerializerMethodField()
+    recipes = serializers.SerializerMethodField()
+    recipes_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ('email', 'id',
+                  'username', 'first_name',
+                  'last_name', 'is_subscribed',
+                  'recipes', 'recipes_count')
+
+    def get_is_subscribed(self, obj):
+        return (
+            self.context.get('request').user.is_authenticated
+            and Subscribe.objects.filter(user=self.context['request'].user, author=obj).exists()
+        )
+
+    def get_recipes(self, obj):
+        subscribed_authors = Subscribe.objects.filter(user=self.context['request'].user).values_list('author', flat=True)
+        recipes = Recipe.objects.filter(author__in=subscribed_authors)
+        serializer = RecipeSerializer(recipes, many=True, read_only=True)
+        return serializer.data
+
+    def get_recipes_count(self, obj):
+        subscribed_authors = Subscribe.objects.filter(user=self.context['request'].user).values_list('author', flat=True)
+        return Recipe.objects.filter(author__in=subscribed_authors).count()
+
+
+class SubscribePostSerializer(serializers.ModelSerializer):
+    email = serializers.ReadOnlyField()
+    username = serializers.ReadOnlyField()
+    is_subscribed = serializers.SerializerMethodField()
+    recipes = serializers.SerializerMethodField()
+    recipes_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = ('email', 'id',
+                  'username', 'first_name',
+                  'last_name', 'is_subscribed',
+                  'recipes', 'recipes_count')
 
     def validate_subscription(self, value):
         if self.context['request'].user == value:
-            raise serializers.ValidationError(
-                'Подписка на самого себя невозможна'
-            )
+            raise serializers.ValidationError('Подписка на самого себя невозможна')
         return value
+
+    def get_is_subscribed(self, obj):
+        return (
+            self.context.get('request').user.is_authenticated
+            and Subscribe.objects.filter(user=self.context['request'].user, author=obj).exists()
+        )
+
+    def get_recipes(self, obj):
+        recipes = Recipe.objects.filter(author=obj)
+        serializer = RecipeSerializer(recipes, many=True, read_only=True)
+        return serializer.data
+
+    def get_recipes_count(self, obj):
+        return Recipe.objects.filter(author=obj).count()
+
+
+class PasswordSerializer(serializers.Serializer):
+    current_password = serializers.CharField()
+    new_password = serializers.CharField()
+
+    def validate(self, obj):
+        try:
+            validate_password(obj['new_password'])
+        except django_exceptions.ValidationError as e:
+            raise serializers.ValidationError(
+                {'new_password': list(e.messages)}
+            )
+        return super().validate(obj)
+
+    def update(self, instance, validated_data):
+        if not instance.check_password(validated_data['current_password']):
+            raise serializers.ValidationError(
+                {'current_password': 'Неправильный пароль.'}
+            )
+        if (validated_data['current_password']
+           == validated_data['new_password']):
+            raise serializers.ValidationError(
+                {'new_password': 'Новый пароль должен отличаться от текущего.'}
+            )
+        instance.set_password(validated_data['new_password'])
+        instance.save()
+        return validated_data
 
 
 class IngredientSerializer(serializers.ModelSerializer):
