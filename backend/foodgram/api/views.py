@@ -20,7 +20,7 @@ from recipe.models import (
     Tag,
     User,
 )
-from .permissions import IsAdminOrReadOnly
+from .permissions import IsAuthorOrReadOnly
 from .serializers import (
     IngredientSerializer,
     RecipeCreateSerializer,
@@ -106,21 +106,25 @@ class UserViewSet(mixins.CreateModelMixin,
 class IngredientViewSet(mixins.ListModelMixin,
                         mixins.RetrieveModelMixin,
                         viewsets.GenericViewSet):
+    permission_classes = (AllowAny, )
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     search_fields = ('^name', )
+    pagination_class = None
 
 
 class TagViewSet(mixins.ListModelMixin,
                  mixins.RetrieveModelMixin,
                  viewsets.GenericViewSet):
+    permission_classes = (AllowAny, )
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+    pagination_class = None
 
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
-    permission_classes = (IsAdminOrReadOnly,)
+    permission_classes = (IsAuthorOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
     pagination_class = PageNumberPagination

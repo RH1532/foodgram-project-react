@@ -1,6 +1,7 @@
 from django.contrib import admin
 from .models import (
     User,
+    Subscribe,
     Ingredient,
     Tag,
     Recipe,
@@ -16,11 +17,25 @@ class UserAdmin(admin.ModelAdmin):
         'pk',
         'username',
         'email',
+        'password',
         'is_superuser',
         'first_name',
         'last_name',
     )
+    list_editable = ('password', )
+    list_filter = ('username', 'email')
     search_fields = ('username',)
+    empty_value_display = '-пусто-'
+
+
+@admin.register(Subscribe)
+class SubscribeAdmin(admin.ModelAdmin):
+    list_display = (
+        'pk',
+        'user',
+        'author',
+    )
+    list_editable = ('user', 'author')
     empty_value_display = '-пусто-'
 
 
@@ -31,7 +46,6 @@ class IngredientAdmin(admin.ModelAdmin):
         'name',
         'unit',
     )
-    search_fields = ('name',)
     list_filter = ('name',)
     empty_value_display = '-пусто-'
 
@@ -44,8 +58,11 @@ class TagAdmin(admin.ModelAdmin):
         'color',
         'slug',
     )
-    search_fields = ('slug',)
-    list_filter = ('slug',)
+    list_editable = (
+        'name',
+        'color',
+        'slug',
+    )
     empty_value_display = '-пусто-'
 
 
@@ -57,9 +74,22 @@ class RecipeAdmin(admin.ModelAdmin):
         'name',
         'image',
         'text',
+        'cooking_time',
+        'in_favorites',
     )
-    list_filter = ('author',)
+    list_editable = (
+        'name',
+        'image',
+        'text',
+        'cooking_time',
+    )
+    readonly_fields = ('in_favorites',)
+    list_filter = ('name', 'author', 'tags')
     empty_value_display = '-пусто-'
+
+    @admin.display(description='В избранном')
+    def in_favorites(self, obj):
+        return obj.favorite_recipe.count()
 
 
 @admin.register(RecipeIngredient)
@@ -70,7 +100,11 @@ class RecipeIngredientAdmin(admin.ModelAdmin):
         'ingredient',
         'amount',
     )
-    empty_value_display = '-пусто-'
+    list_editable = (
+        'recipe',
+        'ingredient',
+        'amount',
+    )
 
 
 @admin.register(FavoritesList)
@@ -80,8 +114,10 @@ class FavoritesListAdmin(admin.ModelAdmin):
         'user',
         'recipe',
     )
-    list_filter = ('user',)
-    empty_value_display = '-пусто-'
+    list_editable = (
+        'user',
+        'recipe',
+    )
 
 
 @admin.register(ShoppingList)
@@ -91,5 +127,7 @@ class ShoppingListAdmin(admin.ModelAdmin):
         'user',
         'recipe',
     )
-    list_filter = ('user',)
-    empty_value_display = '-пусто-'
+    list_editable = (
+        'user',
+        'recipe',
+    )

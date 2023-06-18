@@ -10,18 +10,24 @@ services:
       - ./.env
 
   backend:
-      image: danila1532/infra-backend
-      restart: always
-      volumes:
-        - static_value:/app/static/
-        - media_value:/app/media/
-      depends_on:
-        - db
-      env_file:
-        - ./.env
+    image: danila1532/infra-backend
+    build: 
+      context: ../backend 
+      dockerfile: Dockerfile
+    restart: always
+    volumes:
+      - static_value:/app/static/
+      - media_value:/app/media/
+    depends_on:
+      - db
+    env_file:
+      - ./.env
 
   frontend:
     image: danila1532/infra-frontend
+    build: 
+      context: ../frontend 
+      dockerfile: Dockerfile
     volumes:
       - ../frontend/:/app/result_build/
     depends_on:

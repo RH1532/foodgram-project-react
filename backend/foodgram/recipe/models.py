@@ -74,7 +74,6 @@ class Ingredient(models.Model):
 class Tag(models.Model):
     name = models.CharField(
         max_length=50,
-        unique=True,
         verbose_name='Название'
     )
     color = models.CharField(
@@ -86,12 +85,12 @@ class Tag(models.Model):
                 message='Поле должно содержать HEX-код выбранного цвета.'
             )
         ],
-        unique=True,
         verbose_name='HEX-код цвета'
     )
     slug = models.SlugField(
         max_length=50,
         unique=True,
+        null=True,
         verbose_name='Слаг'
     )
 
@@ -123,7 +122,7 @@ class Recipe(models.Model):
         through_fields=('recipe', 'ingredient'),
         verbose_name='Ингредиенты'
     )
-    tag = models.ManyToManyField(
+    tags = models.ManyToManyField(
         Tag,
         verbose_name='Теги'
     )
