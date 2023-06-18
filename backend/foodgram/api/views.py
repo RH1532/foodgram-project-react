@@ -2,7 +2,7 @@ from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import status, viewsets, mixins
+from rest_framework import status, viewsets, mixins, filters
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -113,9 +113,10 @@ class UserViewSet(mixins.CreateModelMixin,
 class IngredientViewSet(mixins.ListModelMixin,
                         mixins.RetrieveModelMixin,
                         viewsets.GenericViewSet):
-    permission_classes = (AllowAny, )
     queryset = Ingredient.objects.all()
+    permission_classes = (AllowAny, )
     serializer_class = IngredientSerializer
+    filter_backends = (filters.SearchFilter, )
     search_fields = ('^name', )
     pagination_class = None
 
