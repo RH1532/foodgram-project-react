@@ -1,4 +1,4 @@
-from django.db.models import Sum, Q
+from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -87,7 +87,7 @@ class UserViewSet(mixins.CreateModelMixin,
         queryset = User.objects.filter(subscriber__user=request.user)
         page = self.paginate_queryset(queryset)
         serializer = SubscribeGetSerializer(page, many=True,
-                                             context={'request': request})
+                                            context={'request': request})
         return self.get_paginated_response(serializer.data)
 
     @action(detail=True, methods=['post', 'delete'],
@@ -142,17 +142,26 @@ class RecipeViewSet(viewsets.ModelViewSet):
             return RecipeReadSerializer
         return RecipeCreateSerializer
 
-    def add_or_remove_item(self, model_class, error_message, success_status, **kwargs):
+    def add_or_remove_item(self,
+                           model_class,
+                           error_message,
+                           success_status,
+                           **kwargs):
         recipe = get_object_or_404(Recipe, id=kwargs['pk'])
 
         if self.request.method == 'POST':
-            if not model_class.objects.filter(user=self.request.user, recipe=recipe).exists():
-                model_class.objects.create(user=self.request.user, recipe=recipe)
+            if not model_class.objects.filter(user=self.request.user,
+                                              recipe=recipe).exists():
+                model_class.objects.create(user=self.request.user,
+                                           recipe=recipe)
                 return Response(status=success_status)
-            return Response({'errors': error_message}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'errors': error_message},
+                            status=status.HTTP_400_BAD_REQUEST)
 
         if self.request.method == 'DELETE':
-            get_object_or_404(model_class, user=self.request.user, recipe=recipe).delete()
+            get_object_or_404(model_class,
+                              user=self.request.user,
+                              recipe=recipe).delete()
             return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=['post', 'delete'],

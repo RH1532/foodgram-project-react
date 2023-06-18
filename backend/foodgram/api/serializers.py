@@ -4,7 +4,6 @@ from django.core import exceptions as django_exceptions
 from django.contrib.auth.password_validation import validate_password
 from drf_base64.fields import Base64ImageField
 from rest_framework import serializers
-from rest_framework.validators import UniqueTogetherValidator
 
 from recipe.validators import validate_username
 from recipe.models import (
@@ -76,17 +75,20 @@ class SubscribeGetSerializer(serializers.ModelSerializer):
     def get_is_subscribed(self, obj):
         return (
             self.context.get('request').user.is_authenticated
-            and Subscribe.objects.filter(user=self.context['request'].user, author=obj).exists()
+            and Subscribe.objects.filter(user=self.context['request'].user,
+                                         author=obj).exists()
         )
 
     def get_recipes(self, obj):
-        subscribed_authors = Subscribe.objects.filter(user=self.context['request'].user).values_list('author', flat=True)
+        subscribed_authors = Subscribe.objects.filter(
+            user=self.context['request'].user).values_list('author', flat=True)
         recipes = Recipe.objects.filter(author__in=subscribed_authors)
         serializer = RecipeSerializer(recipes, many=True, read_only=True)
         return serializer.data
 
     def get_recipes_count(self, obj):
-        subscribed_authors = Subscribe.objects.filter(user=self.context['request'].user).values_list('author', flat=True)
+        subscribed_authors = Subscribe.objects.filter(
+            user=self.context['request'].user).values_list('author', flat=True)
         return Recipe.objects.filter(author__in=subscribed_authors).count()
 
 
@@ -106,13 +108,16 @@ class SubscribePostSerializer(serializers.ModelSerializer):
 
     def validate_subscription(self, value):
         if self.context['request'].user == value:
-            raise serializers.ValidationError('Подписка на самого себя невозможна')
+            raise serializers.ValidationError(
+                'Подписка на самого себя невозможна'
+            )
         return value
 
     def get_is_subscribed(self, obj):
         return (
             self.context.get('request').user.is_authenticated
-            and Subscribe.objects.filter(user=self.context['request'].user, author=obj).exists()
+            and Subscribe.objects.filter(user=self.context['request'].user,
+                                         author=obj).exists()
         )
 
     def get_recipes(self, obj):
@@ -178,7 +183,9 @@ class RecipeIngredientSerializer(serializers.ModelSerializer):
 class RecipeReadSerializer(serializers.ModelSerializer):
     author = UserGetSerializer(read_only=True)
     tags = TagSerializer(many=True, read_only=True)
-    ingredients = RecipeIngredientSerializer(many=True, read_only=True, source='recipes')
+    ingredients = RecipeIngredientSerializer(many=True,
+                                             read_only=True,
+                                             source='recipes')
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
     image = Base64ImageField()
