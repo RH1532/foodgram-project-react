@@ -44,7 +44,7 @@ class IngredientAdmin(admin.ModelAdmin):
     list_display = (
         'pk',
         'name',
-        'unit',
+        'measurement_unit',
     )
     list_filter = ('name',)
     empty_value_display = '-пусто-'

@@ -5,6 +5,13 @@
 
  «Продуктовый помощник»: сайт, на котором пользователи могут публиковать рецепты, добавлять чужие рецепты в избранное и подписываться на публикации других авторов. Сервис «Список покупок» позволит пользователям создавать список продуктов, которые нужно купить для приготовления выбранных блюд. 
 
+## Стек технологий
+Python 3.7.0  
+Django 3.2  
+DRF 3.12.4  
+Nginx  
+Docker  
+
 ## Развертывание проекта
 1. Скопировать проект на сервер  
 2. Скопировать файлы docker-compose и nginx:  
@@ -16,3 +23,9 @@
  `docker-compose exec backend python manage.py migrate`  
  `docker-compose exec backend python manage.py collectstatic --no-input`  
  `docker-compose exec backend python manage.py createsuperuser`  
+
+# Примеры работы
+С полной документацией можно ознакомится по адресу: [Redoc](http://localhost/api/docs/)
+
+# Авторы
+[Ильин Данила](https://github.com/RH1532)  

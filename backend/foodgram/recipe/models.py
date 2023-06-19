@@ -50,7 +50,8 @@ class Subscribe(models.Model):
 
 class Ingredient(models.Model):
     name = models.CharField(max_length=255, verbose_name='Название')
-    unit = models.CharField(max_length=50, verbose_name='Единица измерения')
+    measurement_unit = models.CharField(max_length=200,
+                                        verbose_name='Единица измерения')
 
     class Meta:
         ordering = ['name']
@@ -97,6 +98,7 @@ class Recipe(models.Model):
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
+        related_name='recipes',
         verbose_name='Автор'
     )
     name = models.CharField(max_length=255, verbose_name='Название')
@@ -167,7 +169,7 @@ class RecipeIngredient(models.Model):
         return (f'{self.recipe.name}: '
                 f'{self.ingredient.name} - '
                 f'{self.amount} '
-                f'{self.ingredient.unit}')
+                f'{self.ingredient.measurement_unit}')
 
 
 class FavoritesList(models.Model):

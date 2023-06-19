@@ -23,6 +23,7 @@ from recipe.models import (
 from .permissions import IsAuthorOrReadOnly
 from .serializers import (
     IngredientSerializer,
+    RecipeSerializer,
     RecipeCreateSerializer,
     RecipeReadSerializer,
     SubscribeGetSerializer,
@@ -116,9 +117,9 @@ class IngredientViewSet(mixins.ListModelMixin,
     queryset = Ingredient.objects.all()
     permission_classes = (AllowAny, )
     serializer_class = IngredientSerializer
-    filter_backends = (filters.SearchFilter, )
-    search_fields = ('^name', )
     pagination_class = None
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('^name',)
 
 
 class TagViewSet(mixins.ListModelMixin,
@@ -149,21 +150,27 @@ class RecipeViewSet(viewsets.ModelViewSet):
                            success_status,
                            **kwargs):
         recipe = get_object_or_404(Recipe, id=kwargs['pk'])
+        serializer = RecipeSerializer(recipe,
+                                      data=self.request.data,
+                                      context={"request": self.request})
+        serializer.is_valid(raise_exception=True)
 
         if self.request.method == 'POST':
             if not model_class.objects.filter(user=self.request.user,
                                               recipe=recipe).exists():
                 model_class.objects.create(user=self.request.user,
                                            recipe=recipe)
-                return Response(status=success_status)
+                return Response(serializer.data, status=success_status)
             return Response({'errors': error_message},
                             status=status.HTTP_400_BAD_REQUEST)
 
         if self.request.method == 'DELETE':
-            get_object_or_404(model_class,
-                              user=self.request.user,
-                              recipe=recipe).delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+            obj = get_object_or_404(model_class,
+                                    user=self.request.user,
+                                    recipe=recipe)
+            obj.delete()
+            return Response({'detail': 'Рецепт успешно удален.'},
+                            status=status.HTTP_204_NO_CONTENT)
 
     @action(detail=True, methods=['post', 'delete'],
             permission_classes=(IsAuthenticated,))
@@ -197,7 +204,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
             .values_list(
                 'ingredient__name',
                 'total_amount',
-                'ingredient__unit'
+                'ingredient__measurement_unit'
             )
         )
         file_list = ['{} - {} {}.'.format(*ingredient)
