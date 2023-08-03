@@ -10,7 +10,7 @@ FORBIDDEN_USERNAMES = ('me',)
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv('SECRET_KEY', default='django-insecure-++y@5(7q$=@9ma!^c-8@0ep&xg9xj-zj=3w1k+(a@91f(#bqxo')
+SECRET_KEY = os.getenv('SECRET_KEY')
 
 DEBUG = True
 
